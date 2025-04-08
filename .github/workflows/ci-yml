@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [created]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
+
+  build-python:
+    name: Build Python Package
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install maturin
+        run: pip install maturin
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build Python wheel
+        run: maturin build --release --features python-bindings
+      - name: Upload Python wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-wheel
+          path: target/wheels/*.whl
+
+  build-rust-lib:
+    name: Build Rust Library
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build Rust library
+        run: cargo build --release --lib
+      - name: Create tarball
+        run: |
+          mkdir -p lib-package
+          cp target/release/libservicenow_rest_client.rlib lib-package/
+          cp target/release/libservicenow_rest_client.so lib-package/ || cp target/release/libservicenow_rest_client.dylib lib-package/ || cp target/release/servicenow_rest_client.dll lib-package/ || true
+          tar -czvf servicenow_rest_client.tar.gz lib-package
+      - name: Upload Rust library
+        uses: actions/upload-artifact@v3
+        with:
+          name: rust-lib
+          path: servicenow_rest_client.tar.gz
+
+  build-linux:
+    name: Build Linux Executable
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build Linux binary
+        run: cargo build --release --bin servicenow_rest_client
+      - name: Upload Linux binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-binary
+          path: target/release/servicenow_rest_client
+
+  build-macos:
+    name: Build macOS Executable
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build macOS binary
+        run: cargo build --release --bin servicenow_rest_client
+      - name: Upload macOS binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-binary
+          path: target/release/servicenow_rest_client
+
+  build-windows:
+    name: Build Windows Executable
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build Windows binary
+        run: cargo build --release --bin servicenow_rest_client
+      - name: Upload Windows binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-binary
+          path: target/release/servicenow_rest_client.exe
+
+  release:
+    name: Create GitHub Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-python, build-rust-lib, build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+        
+      - name: Extract version from Cargo.toml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version =' Cargo.toml | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Using version: $VERSION"
+          
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/python-wheel/*.whl
+            artifacts/rust-lib/servicenow_rest_client.tar.gz
+            artifacts/linux-binary/servicenow_rest_client
+            artifacts/macos-binary/servicenow_rest_client
+            artifacts/windows-binary/servicenow_rest_client.exe
+          token: ${{ secrets.GITHUB_TOKEN }}

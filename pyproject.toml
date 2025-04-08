@@ -1,0 +1,17 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "sn_rest_client"
+version = "0.1.0"
+description = "Python bindings for sn_rest_client"
+authors = [
+    {name = "Luchsor", email = "luca999@web.de"},
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]

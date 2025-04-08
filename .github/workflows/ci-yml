@@ -64,14 +64,14 @@ jobs:
       - name: Create tarball
         run: |
           mkdir -p lib-package
-          cp target/release/libservicenow_rest_client.rlib lib-package/
-          cp target/release/libservicenow_rest_client.so lib-package/ || cp target/release/libservicenow_rest_client.dylib lib-package/ || cp target/release/servicenow_rest_client.dll lib-package/ || true
-          tar -czvf servicenow_rest_client.tar.gz lib-package
+          cp target/release/libsn_rest_client.rlib lib-package/
+          cp target/release/libsn_rest_client.so lib-package/ || cp target/release/libsn_rest_client.dylib lib-package/ || cp target/release/sn_rest_client.dll lib-package/ || true
+          tar -czvf sn_rest_client.tar.gz lib-package
       - name: Upload Rust library
         uses: actions/upload-artifact@v3
         with:
           name: rust-lib
-          path: servicenow_rest_client.tar.gz
+          path: sn_rest_client.tar.gz
 
   build-linux:
     name: Build Linux Executable
@@ -85,12 +85,12 @@ jobs:
           toolchain: stable
           override: true
       - name: Build Linux binary
-        run: cargo build --release --bin servicenow_rest_client
+        run: cargo build --release --bin sn_rest_client
       - name: Upload Linux binary
         uses: actions/upload-artifact@v3
         with:
           name: linux-binary
-          path: target/release/servicenow_rest_client
+          path: target/release/sn_rest_client
 
   build-macos:
     name: Build macOS Executable
@@ -104,12 +104,12 @@ jobs:
           toolchain: stable
           override: true
       - name: Build macOS binary
-        run: cargo build --release --bin servicenow_rest_client
+        run: cargo build --release --bin sn_rest_client
       - name: Upload macOS binary
         uses: actions/upload-artifact@v3
         with:
           name: macos-binary
-          path: target/release/servicenow_rest_client
+          path: target/release/sn_rest_client
 
   build-windows:
     name: Build Windows Executable
@@ -123,12 +123,12 @@ jobs:
           toolchain: stable
           override: true
       - name: Build Windows binary
-        run: cargo build --release --bin servicenow_rest_client
+        run: cargo build --release --bin sn_rest_client
       - name: Upload Windows binary
         uses: actions/upload-artifact@v3
         with:
           name: windows-binary
-          path: target/release/servicenow_rest_client.exe
+          path: target/release/sn_rest_client.exe
 
   release:
     name: Create GitHub Release
@@ -161,8 +161,8 @@ jobs:
           prerelease: false
           files: |
             artifacts/python-wheel/*.whl
-            artifacts/rust-lib/servicenow_rest_client.tar.gz
-            artifacts/linux-binary/servicenow_rest_client
-            artifacts/macos-binary/servicenow_rest_client
-            artifacts/windows-binary/servicenow_rest_client.exe
+            artifacts/rust-lib/sn_rest_client.tar.gz
+            artifacts/linux-binary/sn_rest_client
+            artifacts/macos-binary/sn_rest_client
+            artifacts/windows-binary/sn_rest_client.exe
           token: ${{ secrets.GITHUB_TOKEN }}

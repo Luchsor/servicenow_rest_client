@@ -4,7 +4,8 @@ use reqwest::blocking::{Client, RequestBuilder, Response};
 use reqwest::StatusCode;
 use serde::Serialize;
 use std::{thread, time::Duration};
-use tokio::time::sleep; 
+use tokio::time::sleep;
+use crate::auth::{Authenticator, TokenAuth};
 
 pub struct SNClient {
     url: String,
@@ -27,7 +28,6 @@ impl SNClient {
         Duration::from_secs(delay_secs)
     }
 
-    // Private helper for executing requests with retries
     async fn execute_with_retry<F>(&self, build_request: F) -> Result<Response, reqwest::Error>
     where
         F: Fn() -> RequestBuilder, // Closure that builds the specific request
